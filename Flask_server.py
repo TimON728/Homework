@@ -37,6 +37,15 @@ cursor.execute(
 conn.commit()
 
 
+@bot.message_handler(commands=['getdb'])
+def getbd(message):
+    if message.from_user.id == 1881319114:
+        with open('homework.db', 'rb') as f:
+            bot.send_document(message.chat.id, f)
+    else:
+        bot.send_message(message.from_user.id, 'Нетуда полез. Это команда не для тебя')
+
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     global users
@@ -173,6 +182,17 @@ def send_school(message):
         keyboard.add(key_no)
         bot.send_photo(message.from_user.id, caption=f'Рассписание на завтра?', photo=users[user_id]['tt'], reply_markup=keyboard)
 
+
+@bot.message_handler(content_types=['document'])
+def handle_document(message):
+    if message.from_user.id == 1881319114:
+        file_info = bot.get_file(message.document.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        with open('homework.db', 'wb') as f:
+            f.write(downloaded_file)
+        bot.reply_to(message, "База данных обновлена")
+    else:
+        bot.reply_to(message, "Недоступно")
 
 
 @bot.callback_query_handler(func=lambda call: True)
