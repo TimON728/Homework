@@ -20,6 +20,7 @@ def keep_alive():
     t.start()
 
 bot = telebot.TeleBot(os.environ.get('TOKEN'))
+MY_ID = int(os.environ.get('MY_ID', 0))
 
 conn = sqlite3.connect('homework.db', check_same_thread=False)  # файл базы данных
 cursor = conn.cursor()
