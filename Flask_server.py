@@ -1,7 +1,7 @@
 import telebot
 from telebot import types
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from flask import Flask
 from threading import Thread
 import os
@@ -34,16 +34,77 @@ cursor.execute(
 cursor.execute(
     '''CREATE TABLE IF NOT EXISTS timetable (id INTEGER PRIMARY KEY AUTOINCREMENT, school_class INTEGER, timetable TEXT, time INTEGER, UNIQUE(school_class, timetable))''')
 
+cursor.execute(
+    '''CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, problem TEXT, photo_id TEXT, verified INTEGER DEFAULT 0)''')
+
 conn.commit()
+
+@bot.message_handler(commands=['chek'])
+def chek(message):
+    if message.from_user.id == MY_ID:
+        jlst = []
+
+        cursor.execute("SELECT * FROM schools")
+        schools = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM homework")
+        homework = cursor.fetchall()
+
+        bot.send_message(message.from_user.id, "=== Таблица schools ===")
+        for row in schools:
+            jlst.append(row)
+        bot.send_message(message.from_user.id, f'{f'\n'.join(jlst)}')
+
+        bot.send_message(message.from_user.id, "=== Таблица homework ===")
+        for row in homework:
+            jlst.append(row)
+            bot.send_message(message.from_user.id, f'{f'\n '.join(jlst)}')
+
+
+@bot.message_handler(commands=['feedback'])
+def feedback(message):
+    global users
+    user_id = message.from_user.id
+    bot.send_message(message.from_user.id, 'Хорошо, отправь фото проблемы и описание. Ответ ожидай в ближайщее время')
+    users[user_id]['condition'] = 'wait problem'
+
+
+@bot.message_handler(commands=['get_feedback'])
+def get_feedback(message):
+    if message.from_user.id == MY_ID:
+        jlst = []
+
+        cursor.execute("SELECT * FROM feedback")
+        feedback = cursor.fetchall()
+
+        bot.send_message(message.from_user.id, "=== Таблица feedback ===")
+        for row in feedback:
+            if row[3] == 0:
+                jlst.append(row)
+        bot.send_message(message.from_user.id, f'{f'\n'.join(jlst)}')
+
+
+@bot.message_handler(commands=['replay'])
+def replay(message):
+    global users
+    user_id = message.from_user.id
+    if user_id == MY_ID:
+        bot.send_message(message.from_user.id, 'Жду')
+        users[user_id]['condition'] = 'wait replay'
+
+
+@bot.message_handler(commands=['help'])
+def help(message):
+    bot.send_message(message.from_user.id, 'Вот все команды: \n /start - пройти регистрацию (Если уже регистрировался, то тебя бот вспомнит) \n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - помсотреть рассписание \n /new_tt - изменить рассписание \n Если сменил школу, то просто введи /school \n Если хочешь отпраить жалобу или задать вопрос, то напиши /feedback')
 
 
 @bot.message_handler(commands=['getdb'])
 def getbd(message):
-    if message.from_user.id == 1881319114:
+    if message.from_user.id == MY_ID:
         with open('homework.db', 'rb') as f:
             bot.send_document(message.chat.id, f)
     else:
-        bot.send_message(message.from_user.id, 'Нетуда полез. Это команда не для тебя')
+        bot.send_message(message.from_user.id, 'Не туда полез. Это команда не для тебя')
 
 
 @bot.message_handler(commands=['start'])
@@ -55,7 +116,7 @@ def send_welcome(message):
     if row:
         users[user_id] = {'school': row[1], 'reg': True}
         bot.send_message(message.from_user.id,
-                         f"Привет! Напомню команды:\n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - помсотреть рассписание \n /new_tt - изменить рассписание \nЕсли сменил школу, то просто введи /school")
+                         f"Привет! Напомню команды:\n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - помсотреть рассписание \n /new_tt - изменить рассписание \n Если сменил школу, то просто введи /school \n Если хочешь отпраить жалобу или задать вопрос, то напиши /feedback")
     else:
         bot.send_message(message.from_user.id,
                          "Привет! Это бот для хранения домашнего задания. Для начала работы бота введи название своей школы и свой класс через команду /school")
@@ -91,7 +152,7 @@ def new_hm(message):
                     hw_foto.append(photo_id)
                 for i in range(len(hw_item)):
                     if hw_chel[i] == 'chek in photo_id':
-                        bot.send_photo(message.from_user.id, photo=hw_foto[i], caption=f"{hw_item[i]} (обн. {hw_time[i]})")
+                        bot.send_photo(message.from_user.id, photo=hw_foto[i], caption=f" {hw_item[i]} (обн. {hw_time[i]})")
                     else:
                         hw_list.append(f'{hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})')
                 bot.send_message(message.from_user.id, f'{f'\n'.join(hw_list)}')
@@ -181,11 +242,42 @@ def send_school(message):
         key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
         keyboard.add(key_no)
         bot.send_photo(message.from_user.id, caption=f'Рассписание на завтра?', photo=users[user_id]['tt'], reply_markup=keyboard)
+    elif users[user_id]['condition'] == 'wait problem':
+        try:
+            users[user_id]['problem_foto'] = message.photo[-1].file_id
+            users[user_id]['problem_text'] = message.text
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+            keyboard.add(key_yes)
+            key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+            keyboard.add(key_no)
+            bot.send_photo(message.from_user.id, caption=f'Твоя проблема: {users[user_id]['problem_text']}', photo=users[user_id]['problem_foto'], reply_markup=keyboard)
+        except:
+            users[user_id]['problem_foto'] = 'Don`t send'
+            users[user_id]['problem_text'] = message.text
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+            keyboard.add(key_yes)
+            key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+            keyboard.add(key_no)
+            bot.send_message(message.from_user.id, f'Уверен?: {users[user_id]['problem_text']}', reply_markup=keyboard)
+    elif users[user_id]['condition'] == 'wait replay':
+        if message.from_user.id == MY_ID:
+            users[user_id]['id'] = message.text.split(': ')[0]
+            users[user_id]['answer'] = message.text.split(': ')[1]
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+            keyboard.add(key_yes)
+            key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+            keyboard.add(key_no)
+            bot.send_message(message.from_user.id, f'айди пользователя: {users[user_id]['id']}, ответ: {users[user_id]['answer']}', reply_markup=keyboard)
+    else:
+        bot.send_message(message.from_user.id, 'Я тебя не понимаю. Введи /help, для просмотра команд. Или можешь подать жалобу через /feedback, а я через время отвечу')
 
 
 @bot.message_handler(content_types=['document'])
 def handle_document(message):
-    if message.from_user.id == 1881319114:
+    if message.from_user.id == MY_ID:
         file_info = bot.get_file(message.document.file_id)
         downloaded_file = bot.download_file(file_info.file_path)
         with open('homework.db', 'wb') as f:
@@ -202,7 +294,7 @@ def callback_worker(call):
     if users[user_id]['condition'] == 'wait school':
         if call.data == "yes":
             bot.send_message(call.message.chat.id,
-                             'Хорошо. Теперь ты можешь посмотреть дз (/hw) или ввести новое(/new_hw). Ещё тф можешь посмотреть рассписание (/tt) ли обновить (/new_tt)')
+                             'Хорошо. Теперь ты можешь посмотреть дз (/hw) или ввести новое(/new_hw). Ещё ты можешь посмотреть рассписание (/tt) ли обновить (/new_tt)')
             cursor.execute('''
                        INSERT INTO schools (user_id, school_class)
                        VALUES (?, ?)
@@ -214,11 +306,12 @@ def callback_worker(call):
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /school')
     elif users[user_id]['condition'] == 'wait new hw':
         if call.data == "yes":
-            now = datetime.now().strftime('%d.%m в %H:%M')
+            now_utc = datetime.now(timezone.utc)
+            now_msk = now_utc + timedelta(hours=3)
             cursor.execute('''
             INSERT OR REPLACE INTO homework (school_class, subject, task, time)
             VALUES (?, ?, ?, ?)
-            ''', (users[user_id]['school'], users[user_id]['item'], users[user_id]['chel'], now))
+            ''', (users[user_id]['school'], users[user_id]['item'], users[user_id]['chel'], now_msk.strftime('%d.%m в %H:%M')))
             conn.commit()
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
@@ -227,11 +320,12 @@ def callback_worker(call):
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_hw')
     elif users[user_id]['condition'] == 'wait photo':
         if call.data == "yes":
-            now = datetime.now().strftime('%d.%m в %H:%M')
+            now_utc = datetime.now(timezone.utc)
+            now_msk = now_utc + timedelta(hours=3)
             cursor.execute('''
             INSERT OR REPLACE INTO homework (school_class, subject, task, time, photo_id)
             VALUES (?, ?, ?, ?, ?)
-            ''', (users[user_id]['school'], users[user_id]['item'], 'chek in photo_id', now, users[user_id]['chel']))
+            ''', (users[user_id]['school'], users[user_id]['item'], 'chek in photo_id', now_msk.strftime('%d.%m в %H:%M'), users[user_id]['chel']))
             conn.commit()
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
@@ -240,17 +334,42 @@ def callback_worker(call):
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_hw')
     elif users[user_id]['condition'] == 'wait new tt':
         if call.data == "yes":
-            now = datetime.now().strftime('%d.%m в %H:%M')
+            now_utc = datetime.now(timezone.utc)
+            now_msk = now_utc + timedelta(hours=3)
             cursor.execute('''
             INSERT OR REPLACE INTO timetable (school_class, timetable, time)
             VALUES (?, ?, ?)
-            ''', (users[user_id]['school'], users[user_id]['tt'], now))
+            ''', (users[user_id]['school'], users[user_id]['tt'], now_msk.strftime('%d.%m в %H:%M')))
             conn.commit()
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
                              'Хорошо. Если хочешь обновить рассписание, то используй команду /new_tt ещё раз')
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_tt')
+    elif users[user_id]['condition'] == 'wait problem':
+        if call.data == "yes":
+            cursor.execute('''
+            INSERT OR REPLACE INTO feedback (problem, photo_id)
+            VALUES (?, ?)
+            ''', (users[user_id]['problem_text'], users[user_id]['problem_foto']))
+            conn.commit()
+            users[user_id]['condition'] = ''
+            bot.send_message(call.message.chat.id,
+                             'Хорошо. Жди ответа в ближайшее время')
+        elif call.data == "no":
+            bot.send_message(call.message.chat.id, 'Тогда введи заново через /feedback')
+    elif users[user_id]['condition'] == 'wait replay':
+        if call.data == "yes":
+            cursor.execute('''
+            INSERT OR REPLACE INTO feedback (verified)
+            VALUES (?)
+            ''', (1,))
+            conn.commit()
+            users[user_id]['condition'] = ''
+            bot.send_message(call.message.users[user_id]['id'], f'Вот ответ от разработчика: {users[user_id]["answer"]}')
+            bot.send_message(call.message.chat.id, 'Отправил')
+        elif call.data == "no":
+            bot.send_message(call.message.chat.id, 'Тогда введи заново через /feedback')
 
 
 keep_alive()
