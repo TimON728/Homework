@@ -369,7 +369,6 @@ def callback_worker(call):
             bot.send_message(call.message.chat.id, 'Отправил1')
             cursor.execute('''
             UPDATE feedback SET verified = 1 WHERE photo_id = ?
-            VALUES (?)
             ''', (users[user_id]['problem_foto'],))
             conn.commit()
             bot.send_message(call.message.chat.id, 'Отправи2л')
