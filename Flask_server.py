@@ -43,13 +43,9 @@ conn.commit()
 @bot.message_handler(commands=['chek'])
 def chek(message):
     if message.from_user.id == MY_ID:
-        jlst = []
 
         cursor.execute("SELECT * FROM schools")
         schools = cursor.fetchall()
-
-        cursor.execute("SELECT * FROM homework")
-        homework = cursor.fetchall()
 
         bot.send_message(message.from_user.id, "=== Таблица schools ===")
         for row in schools:
@@ -78,7 +74,7 @@ def get_feedback(message):
 
     bot.send_message(message.chat.id, "=== Новые feedback ===")
     for row in feedback:
-        if row[2] != 'Don`t send':
+        if 'Don`t send' not in row[2]:
             bot.send_photo(message.chat.id, caption=f'{row[0]}: {row[1]}', photo=row[2])
         else:
             bot.send_message(message.chat.id, f'{row[0]}: {row[1]}')
@@ -254,7 +250,7 @@ def send_school(message):
             bot.send_photo(message.from_user.id, caption=f'Твоя проблема: {users[user_id]['problem_text']}', photo=users[user_id]['problem_foto'], reply_markup=keyboard)
         except:
             try:
-                users[user_id]['problem_foto'] = 'Don`t send'
+                users[user_id]['problem_foto'] = f'Don`t send, {user_id}'
                 users[user_id]['problem_text'] = message.caption
                 keyboard = types.InlineKeyboardMarkup()
                 key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
@@ -371,12 +367,12 @@ def callback_worker(call):
     elif users[user_id]['condition'] == 'wait replay':
         if call.data == "yes":
             cursor.execute('''
-            INSERT OR REPLACE INTO feedback (verified)
+            UPDATE feedback SET verified = 1 WHERE photo_id = ?
             VALUES (?)
-            ''', (1,))
+            ''', (users[user_id]['problem_foto'],))
             conn.commit()
             users[user_id]['condition'] = ''
-            bot.send_message(call.message.users[user_id]['id'], f'Вот ответ от разработчика: {users[user_id]["answer"]}')
+            bot.send_message(call.from_user.users[user_id]['id'], f'Вот ответ от разработчика: {users[user_id]["answer"]}')
             bot.send_message(call.message.chat.id, 'Отправил')
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /feedback')
