@@ -366,11 +366,13 @@ def callback_worker(call):
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /feedback')
     elif users[user_id]['condition'] == 'wait replay':
         if call.data == "yes":
+            bot.send_message(call.message.chat.id, 'Отправил1')
             cursor.execute('''
             UPDATE feedback SET verified = 1 WHERE photo_id = ?
             VALUES (?)
             ''', (users[user_id]['problem_foto'],))
             conn.commit()
+            bot.send_message(call.message.chat.id, 'Отправи2л')
             users[user_id]['condition'] = ''
             bot.send_message(call.from_user.users[user_id]['id'], f'Вот ответ от разработчика: {users[user_id]["answer"]}')
             bot.send_message(call.message.chat.id, 'Отправил')
