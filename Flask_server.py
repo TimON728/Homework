@@ -53,13 +53,12 @@ def chek(message):
 
         bot.send_message(message.from_user.id, "=== Таблица schools ===")
         for row in schools:
-            jlst.append(row)
-        bot.send_message(message.from_user.id, f'{f'\n'.join(jlst)}')
+            bot.send_message(message.from_user.id, f'{row}')
 
         bot.send_message(message.from_user.id, "=== Таблица homework ===")
         for row in homework:
             jlst.append(row)
-            bot.send_message(message.from_user.id, f'{f'\n '.join(jlst)}')
+            bot.send_message(message.from_user.id, f'{row}')
 
 
 @bot.message_handler(commands=['feedback'])
@@ -72,17 +71,19 @@ def feedback(message):
 
 @bot.message_handler(commands=['get_feedback'])
 def get_feedback(message):
-    if message.from_user.id == MY_ID:
-        jlst = []
+    if message.from_user.id != MY_ID:
+        return
 
-        cursor.execute("SELECT * FROM feedback")
-        feedback = cursor.fetchall()
+    cursor.execute("SELECT * FROM feedback WHERE verified=0")
+    feedback = cursor.fetchall()
 
-        bot.send_message(message.from_user.id, "=== Таблица feedback ===")
-        for row in feedback:
-            if row[3] == 0:
-                jlst.append(row)
-        bot.send_message(message.from_user.id, f'{f'\n'.join(jlst)}')
+    if not feedback:
+        bot.send_message(message.chat.id, "Новых сообщений нет")
+        return
+
+    bot.send_message(message.chat.id, "=== Новые feedback ===")
+    for row in feedback:
+        bot.send_photo(message.chat.id, caption=f'{row[0]}: {row[1]}', photo=row[2])
 
 
 @bot.message_handler(commands=['replay'])
@@ -155,7 +156,7 @@ def new_hm(message):
                     if hw_chel[i] == 'chek in photo_id':
                         bot.send_photo(message.from_user.id, photo=hw_foto[i], caption=f" {hw_item[i]} (обн. {hw_time[i]})")
                     else:
-                        hw_list.append(f'{hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})')
+                        hw_list.append(f' {hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})')
                 bot.send_message(message.from_user.id, f'{f'\n'.join(hw_list)}')
             else:
                 bot.send_message(message.from_user.id, "Задания ещё не добавили")
