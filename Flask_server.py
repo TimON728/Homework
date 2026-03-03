@@ -154,7 +154,7 @@ def new_hm(message):
                     if hw_chel[i] == 'chek in photo_id':
                         bot.send_photo(message.from_user.id, photo=hw_foto[i], caption=f" {hw_item[i]} (обн. {hw_time[i]})")
                     else:
-                        hw_list.append(f' {hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})')
+                        hw_list.append(f'- {hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})')
                 bot.send_message(message.from_user.id, f'{f'\n'.join(hw_list)}')
             else:
                 bot.send_message(message.from_user.id, "Задания ещё не добавили")
@@ -361,7 +361,7 @@ def callback_worker(call):
             cursor.execute('''
             INSERT OR REPLACE INTO feedback (problem, photo_id)
             VALUES (?, ?)
-            ''', (users[user_id]['problem_text'], users[user_id]['problem_foto']))
+            ''', (f"{user_id}: {users[user_id]['problem_text']}", users[user_id]['problem_foto']))
             conn.commit()
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
