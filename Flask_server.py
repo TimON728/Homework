@@ -55,11 +55,6 @@ def chek(message):
         for row in schools:
             bot.send_message(message.from_user.id, f'{row}')
 
-        bot.send_message(message.from_user.id, "=== Таблица homework ===")
-        for row in homework:
-            jlst.append(row)
-            bot.send_message(message.from_user.id, f'{row}')
-
 
 @bot.message_handler(commands=['feedback'])
 def feedback(message):
@@ -83,7 +78,10 @@ def get_feedback(message):
 
     bot.send_message(message.chat.id, "=== Новые feedback ===")
     for row in feedback:
-        bot.send_photo(message.chat.id, caption=f'{row[0]}: {row[1]}', photo=row[2])
+        if row[2] != 'Don`t send':
+            bot.send_photo(message.chat.id, caption=f'{row[0]}: {row[1]}', photo=row[2])
+        else:
+            bot.send_message(message.chat.id, f'{row[0]}: {row[1]}')
 
 
 @bot.message_handler(commands=['replay'])
@@ -247,7 +245,7 @@ def send_school(message):
     elif users[user_id]['condition'] == 'wait problem':
         try:
             users[user_id]['problem_foto'] = message.photo[-1].file_id
-            users[user_id]['problem_text'] = message.text
+            users[user_id]['problem_text'] = message.caption
             keyboard = types.InlineKeyboardMarkup()
             key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
             keyboard.add(key_yes)
@@ -255,14 +253,24 @@ def send_school(message):
             keyboard.add(key_no)
             bot.send_photo(message.from_user.id, caption=f'Твоя проблема: {users[user_id]['problem_text']}', photo=users[user_id]['problem_foto'], reply_markup=keyboard)
         except:
-            users[user_id]['problem_foto'] = 'Don`t send'
-            users[user_id]['problem_text'] = message.text
-            keyboard = types.InlineKeyboardMarkup()
-            key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
-            keyboard.add(key_yes)
-            key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
-            keyboard.add(key_no)
-            bot.send_message(message.from_user.id, f'Уверен?: {users[user_id]['problem_text']}', reply_markup=keyboard)
+            try:
+                users[user_id]['problem_foto'] = 'Don`t send'
+                users[user_id]['problem_text'] = message.caption
+                keyboard = types.InlineKeyboardMarkup()
+                key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+                keyboard.add(key_yes)
+                key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+                keyboard.add(key_no)
+                bot.send_message(message.from_user.id, f'Уверен?: {users[user_id]['problem_text']}', reply_markup=keyboard)
+            except:
+                users[user_id]['problem_foto'] = message.photo[-1].file_id
+                users[user_id]['problem_text'] = 'Don`t send'
+                keyboard = types.InlineKeyboardMarkup()
+                key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+                keyboard.add(key_yes)
+                key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+                keyboard.add(key_no)
+                bot.send_photo(message.from_user.id, caption=f'Твоя проблема: {users[user_id]['problem_text']}', photo=users[user_id]['problem_foto'], reply_markup=keyboard)
     elif users[user_id]['condition'] == 'wait replay':
         if message.from_user.id == MY_ID:
             users[user_id]['id'] = message.text.split(': ')[0]
