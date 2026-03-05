@@ -376,7 +376,7 @@ def callback_worker(call):
             conn.commit()
             bot.send_message(call.message.chat.id, 'Отправи2л')
             users[user_id]['condition'] = ''
-            bot.send_message(call.from_user.users[user_id]['id'], f'Вот ответ от разработчика: {users[user_id]["answer"]}')
+            bot.send_message(users[user_id]['id'], f'Вот ответ от разработчика: {users[user_id]["answer"]}')
             bot.send_message(call.message.chat.id, 'Отправил')
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /feedback')
