@@ -38,6 +38,9 @@ cursor.execute(
 cursor.execute(
     '''CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, problem TEXT, photo_id TEXT, verified INTEGER DEFAULT 0)''')
 
+cursor.execute(
+    '''CREATE TABLE IF NOT EXISTS feedback_2 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, problem TEXT, photo_id TEXT, verified INTEGER DEFAULT 0)''')
+
 conn.commit()
 
 @bot.message_handler(commands=['chek'])
@@ -65,7 +68,7 @@ def get_feedback(message):
     if message.from_user.id != MY_ID:
         return
 
-    cursor.execute("SELECT * FROM feedback WHERE verified=0")
+    cursor.execute("SELECT * FROM feedback_2 WHERE verified=0")
     feedback = cursor.fetchall()
 
     if not feedback:
@@ -75,9 +78,9 @@ def get_feedback(message):
     bot.send_message(message.chat.id, "=== Новые feedback ===")
     for row in feedback:
         if 'Don`t send' not in row[2]:
-            bot.send_photo(message.chat.id, caption=f'{row[0]}: {row[1]}', photo=row[2])
+            bot.send_photo(message.chat.id, caption=f'{row[1]}: {row[2]}', photo=row[3])
         else:
-            bot.send_message(message.chat.id, f'{row[0]}: {row[1]}')
+            bot.send_message(message.chat.id, f'{row[1]}: {row[2]}')
 
 
 @bot.message_handler(commands=['replay'])
@@ -250,7 +253,7 @@ def send_school(message):
             bot.send_photo(message.from_user.id, caption=f'Твоя проблема: {users[user_id]['problem_text']}', photo=users[user_id]['problem_foto'], reply_markup=keyboard)
         except:
             try:
-                users[user_id]['problem_foto'] = f'Don`t send, {user_id}'
+                users[user_id]['problem_foto'] = f'Don`t send'
                 users[user_id]['problem_text'] = message.caption
                 keyboard = types.InlineKeyboardMarkup()
                 key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
@@ -355,9 +358,9 @@ def callback_worker(call):
     elif users[user_id]['condition'] == 'wait problem':
         if call.data == "yes":
             cursor.execute('''
-            INSERT OR REPLACE INTO feedback (problem, photo_id)
-            VALUES (?, ?)
-            ''', (f"{user_id}: {users[user_id]['problem_text']}", users[user_id]['problem_foto']))
+            INSERT OR REPLACE INTO feedback_2 (user_id, problem, photo_id)
+            VALUES (?, ?, ?)
+            ''', (user_id ,f"{users[user_id]['problem_text']}", users[user_id]['problem_foto']))
             conn.commit()
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
@@ -368,8 +371,8 @@ def callback_worker(call):
         if call.data == "yes":
             bot.send_message(call.message.chat.id, 'Отправил1')
             cursor.execute('''
-            UPDATE feedback SET verified = 1 WHERE photo_id = ?
-            ''', (users[user_id]['problem_foto'],))
+            UPDATE feedback_2 SET verified = 1 WHERE user_id = ?, photo_id = ?
+            ''', (users[user_id]['id'], users[user_id]['problem_foto'],))
             conn.commit()
             bot.send_message(call.message.chat.id, 'Отправи2л')
             users[user_id]['condition'] = ''
