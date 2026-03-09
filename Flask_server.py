@@ -161,7 +161,7 @@ def new_hm(message):
                     if hw_foto[i] != 'Don`t send':
                         bot.send_message(message.from_user.id, '3')
                         hw_foto[i] = hw_foto[i].split(', ')
-                        if hw_chel[i] == 'Don`t send' or hw_chel[i] == 'chek ih photo_id':
+                        if hw_chel[i] == 'Don`t send' or hw_chel[i] == 'chek in photo_id':
                             bot.send_message(message.from_user.id, '4')
                             media_group = []
                             for j in hw_foto[i]:
