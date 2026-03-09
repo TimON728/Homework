@@ -150,25 +150,33 @@ def new_hm(message):
             ''', (rework(users[user_id]['school']),))
             rows = cursor.fetchall()
             if len(rows) > 0:
+                bot.send_message(message.from_user.id, '1')
                 for subject, task, time, photo_id in rows:
                     hw_item.append(subject)
                     hw_chel.append(task)
                     hw_time.append(time)
                     hw_foto.append(photo_id)
+                bot.send_message(message.from_user.id, '2')
                 for i in range(len(hw_item)):
                     if hw_foto[i] != 'Don`t send':
+                        bot.send_message(message.from_user.id, '3')
                         hw_foto[i] = hw_foto[i].split(', ')
                         if hw_chel[i] == 'Don`t send' or hw_chel[i] == 'chek ih photo_id':
+                            bot.send_message(message.from_user.id, '4')
                             media_group = []
                             for j in hw_foto[i]:
+                                bot.send_message(message.from_user.id, '5')
                                 media_group.append(types.InputMediaPhoto(j, caption=f"{hw_item[i]} (обн. {hw_time[i]})"))
                             bot.send_media_group(message.from_user.id, media=media_group)
                         elif hw_chel[i] != 'Don`t send':
+                            bot.send_message(message.from_user.id, '6')
                             media_group = []
                             for j in hw_foto[i]:
+                                bot.send_message(message.from_user.id, '7')
                                 media_group.append(types.InputMediaPhoto(j, caption=f"{hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})"))
                             bot.send_media_group(message.from_user.id, media=media_group)
                     else:
+                        bot.send_message(message.from_user.id, '8')
                         hw_list.append(f'- {hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})')
                 bot.send_message(message.from_user.id, f'{f'\n'.join(hw_list)}')
             else:
