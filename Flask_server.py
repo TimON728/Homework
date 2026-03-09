@@ -118,8 +118,8 @@ def send_welcome(message):
         cursor.execute('''
                 UPDATE homework 
                 SET school_class = ? 
-                WHERE user_id = ? AND school_class = ?
-            ''', (rework(users[user_id]['school']), user_id, users[user_id]['school']))
+                WHERE school_class = ?
+            ''', (rework(users[user_id]['school']), users[user_id]['school']))
         conn.commit()
         # при следующем обновлении вырезать
     else:
