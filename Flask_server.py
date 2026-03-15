@@ -349,8 +349,6 @@ def callback_worker(call):
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
                              'Хорошо. Можешь добавить ещё дз через /new_hw, или посмотреть дз через /hw')
-            users[user_id]['hw_foto'] = ''
-            users[user_id]['hw_chel'] = ''
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_hw')
     elif users[user_id]['condition'] == 'wait new tt':
