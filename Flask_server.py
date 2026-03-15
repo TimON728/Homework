@@ -302,7 +302,6 @@ def handle_document(message):
         downloaded_file = bot.download_file(file_info.file_path)
         with open('homework.db', 'wb') as f:
             f.write(downloaded_file)
-        cursor.execute('DROP TABLE homework')
         bot.reply_to(message, "База данных обновлена")
     else:
         bot.reply_to(message, "Недоступно")
