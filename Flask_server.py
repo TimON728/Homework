@@ -153,41 +153,28 @@ def new_hm(message):
             ''', (rework(users[user_id]['school']),))
             rows = cursor.fetchall()
             if len(rows) > 0:
-                bot.send_message(message.from_user.id, '1')
                 for subject, task, time, photo_id in rows:
                     hw_item.append(subject)
                     hw_chel.append(task)
                     hw_time.append(time)
                     hw_foto.append(photo_id)
-                bot.send_message(message.from_user.id, '2')
                 for i in range(len(hw_item)):
                     if hw_foto[i] is not None and hw_foto[i] not in ('Don`t send', 'chek in photo_id'):
-                        bot.send_message(message.from_user.id, f'file_id = {hw_foto[i]}\n repr = {repr(hw_foto[i])}')
-                        bot.send_message(message.from_user.id, '3')
                         hw_foto[i] = str(hw_foto[i]).split(', ')
-                        bot.send_message(message.from_user.id, '3,5')
                         if hw_chel[i] == 'Don`t send' or hw_chel[i] == 'chek in photo_id':
-                            bot.send_message(message.from_user.id, '4')
                             media_group = []
                             for j in hw_foto[i]:
-                                bot.send_message(message.from_user.id, '5')
-                                bot.send_message(user_id, f'file_id = {j}\n repr = {repr(j)} \n type = {type(j)}')
                                 media_group.append(types.InputMediaPhoto(j, caption=f"{hw_item[i]} (обн. {hw_time[i]})"))
                             bot.send_media_group(message.from_user.id, media=media_group)
                         elif hw_chel[i] != 'Don`t send':
-                            bot.send_message(message.from_user.id, '6')
                             media_group = []
                             for j in hw_foto[i]:
-                                bot.send_message(message.from_user.id, '7')
                                 media_group.append(types.InputMediaPhoto(j, caption=f"{hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})"))
                                 bot.send_message(message.from_user.id, f'file_id = {j}\n repr = {repr(j)}')
                             bot.send_media_group(message.from_user.id, media=media_group)
                     else:
-                        bot.send_message(message.from_user.id, '8')
                         hw_list.append(f'- {hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})')
-                bot.send_message(message.from_user.id, '9')
                 bot.send_message(message.from_user.id, f'{f'\n'.join(hw_list)}')
-                bot.send_message(message.from_user.id, '10')
             else:
                 bot.send_message(message.from_user.id, "Задания ещё не добавили")
         elif message.text == '/new_hw':
@@ -266,7 +253,7 @@ def send_school(message):
                     users[user_id]['hw_foto'] = ''
                     users[user_id]['hw_foto'] = [message.photo[-1].file_id]
                     users[user_id]['hw_chel'] = message.caption if message.caption else 'Don`t send'
-                timer = threading.Timer(10.0, send_question, args=[user_id])
+                timer = threading.Timer(2.0, send_question, args=[user_id])
                 user_timers[user_id] = timer
                 timer.start()
             except:
@@ -362,6 +349,8 @@ def callback_worker(call):
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
                              'Хорошо. Можешь добавить ещё дз через /new_hw, или посмотреть дз через /hw')
+            users[user_id]['hw_foto'] = ''
+            users[user_id]['hw_chel'] = ''
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_hw')
     elif users[user_id]['condition'] == 'wait new tt':
