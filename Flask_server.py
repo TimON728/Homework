@@ -302,6 +302,8 @@ def handle_document(message):
         downloaded_file = bot.download_file(file_info.file_path)
         with open('homework.db', 'wb') as f:
             f.write(downloaded_file)
+        cursor.execute(
+            '''CREATE TABLE IF NOT EXISTS homework (id INTEGER PRIMARY KEY AUTOINCREMENT, school_class INTEGER, subject TEXT, task TEXT, time INTEGER, photo_id TEXT, UNIQUE(school_class, subject))''')
         bot.reply_to(message, "База данных обновлена")
     else:
         bot.reply_to(message, "Недоступно")
