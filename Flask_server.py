@@ -33,68 +33,67 @@ cursor.execute(
     '''CREATE TABLE IF NOT EXISTS homework (id INTEGER PRIMARY KEY AUTOINCREMENT, school_class INTEGER, subject TEXT, task TEXT, time INTEGER, photo_id TEXT, UNIQUE(school_class, subject))''')
 
 cursor.execute(
+    '''CREATE TABLE IF NOT EXISTS homework_photo (id INTEGER PRIMARY KEY, homework_id INTEGER, photo_id TEXT, FOREIGN KEY (homework_id) REFERENCES homework(id))''')
+
+cursor.execute(
     '''CREATE TABLE IF NOT EXISTS timetable (id INTEGER PRIMARY KEY AUTOINCREMENT, school_class INTEGER, timetable TEXT, time INTEGER, UNIQUE(school_class, timetable))''')
 
-cursor.execute(
-    '''CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, problem TEXT, photo_id TEXT, verified INTEGER DEFAULT 0)''')
-
-cursor.execute(
-    '''CREATE TABLE IF NOT EXISTS feedback_2 (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, problem TEXT, photo_id TEXT, verified INTEGER DEFAULT 0)''')
-
 conn.commit()
+
+
+def rework(school):
+    school = school.lower()
+    school = school.strip(f'"\' ')
+    school = school.replace(' ', '')
+    return school
+
+
+def send_question(message):
+    global users
+    user_id = message
+    media_group = []
+    for i, cap in enumerate(users[user_id]['hw_foto']):
+        if i == 0:
+            if users[user_id]['hw_chel'] != 'Don`t send' or users[user_id]['hw_chel'] != 'chek in photo_id':
+                media_group.append(types.InputMediaPhoto(cap, caption=f'{users[user_id]['hw_chel']}'))
+            else:
+                media_group.append(types.InputMediaPhoto(cap))
+        else:
+            media_group.append(types.InputMediaPhoto(cap))
+    bot.send_media_group(user_id, media=media_group)
+    keyboard = types.InlineKeyboardMarkup()
+    key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+    keyboard.add(key_yes)
+    key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+    keyboard.add(key_no)
+    bot.send_message(user_id, text=f'{users[user_id]['hw_item']}?',
+                     reply_markup=keyboard)
+
 
 @bot.message_handler(commands=['chek'])
 def chek(message):
     if message.from_user.id == MY_ID:
-
+        user = {}
         cursor.execute("SELECT * FROM schools")
         schools = cursor.fetchall()
 
         bot.send_message(message.from_user.id, "=== Таблица schools ===")
         for row in schools:
+            user[row[1]] = f'{row[2]} \n'
+        for i, j in user.items():
+            bot.send_message(message.from_user.id, f'{i}: {j}')
+
+        cursor.execute("SELECT * FROM homework")
+        homework = cursor.fetchall()
+
+        bot.send_message(message.from_user.id, "=== Таблица homework ===")
+        for row in homework:
             bot.send_message(message.from_user.id, f'{row}')
-
-
-@bot.message_handler(commands=['feedback'])
-def feedback(message):
-    global users
-    user_id = message.from_user.id
-    bot.send_message(message.from_user.id, 'Хорошо, отправь фото проблемы и описание. Ответ ожидай в ближайщее время')
-    users[user_id]['condition'] = 'wait problem'
-
-
-@bot.message_handler(commands=['get_feedback'])
-def get_feedback(message):
-    if message.from_user.id != MY_ID:
-        return
-
-    cursor.execute("SELECT * FROM feedback_2 WHERE verified=0")
-    feedback = cursor.fetchall()
-
-    if not feedback:
-        bot.send_message(message.chat.id, "Новых сообщений нет")
-        return
-
-    bot.send_message(message.chat.id, "=== Новые feedback ===")
-    for row in feedback:
-        if 'Don`t send' not in row[2]:
-            bot.send_photo(message.chat.id, caption=f'{row[1]}: {row[2]}', photo=row[3])
-        else:
-            bot.send_message(message.chat.id, f'{row[1]}: {row[2]}')
-
-
-@bot.message_handler(commands=['replay'])
-def replay(message):
-    global users
-    user_id = message.from_user.id
-    if user_id == MY_ID:
-        bot.send_message(message.from_user.id, 'Жду')
-        users[user_id]['condition'] = 'wait replay'
 
 
 @bot.message_handler(commands=['help'])
 def help(message):
-    bot.send_message(message.from_user.id, 'Вот все команды: \n /start - пройти регистрацию (Если уже регистрировался, то тебя бот вспомнит) \n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - помсотреть рассписание \n /new_tt - изменить рассписание \n Если сменил школу, то просто введи /school \n Если хочешь отпраить жалобу или задать вопрос, то напиши /feedback')
+    bot.send_message(message.from_user.id, 'Вот все команды: \n /start - пройти регистрацию (Если уже регистрировался, то тебя бот вспомнит) \n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - помсотреть рассписание \n /new_tt - изменить рассписание \n Если сменил школу, то просто введи /school')
 
 
 @bot.message_handler(commands=['getdb'])
@@ -115,7 +114,15 @@ def send_welcome(message):
     if row:
         users[user_id] = {'school': row[1], 'reg': True}
         bot.send_message(message.from_user.id,
-                         f"Привет! Напомню команды:\n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - помсотреть рассписание \n /new_tt - изменить рассписание \n Если сменил школу, то просто введи /school \n Если хочешь отпраить жалобу или задать вопрос, то напиши /feedback")
+                         f"Привет! Напомню команды:\n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - помсотреть рассписание \n /new_tt - изменить рассписание \n Если сменил школу, то просто введи /school")
+        # при следующем обновлении вырезать
+        cursor.execute('''
+                UPDATE homework 
+                SET school_class = ? 
+                WHERE school_class = ?
+            ''', (rework(users[user_id]['school']), users[user_id]['school']))
+        conn.commit()
+        # при следующем обновлении вырезать
     else:
         bot.send_message(message.from_user.id,
                          "Привет! Это бот для хранения домашнего задания. Для начала работы бота введи название своей школы и свой класс через команду /school")
@@ -141,27 +148,58 @@ def new_hm(message):
             hw_list = []
             cursor.execute('''
             SELECT subject, task, time, photo_id FROM homework WHERE school_class = ?
-            ''', (users[user_id]['school'],))
+            ''', (rework(users[user_id]['school']),))
             rows = cursor.fetchall()
             if len(rows) > 0:
+                bot.send_message(message.from_user.id, '1')
                 for subject, task, time, photo_id in rows:
                     hw_item.append(subject)
                     hw_chel.append(task)
                     hw_time.append(time)
                     hw_foto.append(photo_id)
+                bot.send_message(message.from_user.id, '2')
                 for i in range(len(hw_item)):
-                    if hw_chel[i] == 'chek in photo_id':
-                        bot.send_photo(message.from_user.id, photo=hw_foto[i], caption=f" {hw_item[i]} (обн. {hw_time[i]})")
+                    if hw_foto[i] is not None and hw_foto[i] not in ('Don`t send', 'chek in photo_id'):
+                        bot.send_message(message.from_user.id, f'file_id = {hw_foto[i]}\n repr = {repr(hw_foto[i])}')
+                        bot.send_message(message.from_user.id, '3')
+                        hw_foto[i] = str(hw_foto[i]).split(', ')
+                        bot.send_message(message.from_user.id, '3,5')
+                        if hw_chel[i] == 'Don`t send' or hw_chel[i] == 'chek in photo_id':
+                            bot.send_message(message.from_user.id, '4')
+                            media_group = []
+                            for j in hw_foto[i]:
+                                bot.send_message(message.from_user.id, '5')
+                                bot.send_message(user_id, f'file_id = {j}\n repr = {repr(j)} \n type = {type(j)}')
+                                media_group.append(types.InputMediaPhoto(j, caption=f"{hw_item[i]} (обн. {hw_time[i]})"))
+                            bot.send_media_group(message.from_user.id, media=media_group)
+                        elif hw_chel[i] != 'Don`t send':
+                            bot.send_message(message.from_user.id, '6')
+                            media_group = []
+                            for j in hw_foto[i]:
+                                bot.send_message(message.from_user.id, '7')
+                                media_group.append(types.InputMediaPhoto(j, caption=f"{hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})"))
+                                bot.send_message(message.from_user.id, f'file_id = {j}\n repr = {repr(j)}')
+                            bot.send_media_group(message.from_user.id, media=media_group)
                     else:
+                        bot.send_message(message.from_user.id, '8')
                         hw_list.append(f'- {hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})')
+                bot.send_message(message.from_user.id, '9')
                 bot.send_message(message.from_user.id, f'{f'\n'.join(hw_list)}')
+                bot.send_message(message.from_user.id, '10')
             else:
                 bot.send_message(message.from_user.id, "Задания ещё не добавили")
         elif message.text == '/new_hw':
+            keyboard = types.InlineKeyboardMarkup(row_width=2)
+            cursor.execute('SELECT * FROM homework WHERE school_class = ? ', (rework(users[user_id]['school']),))
+            subject = cursor.fetchall()
+            for row in subject:
+                key = types.InlineKeyboardButton(text=f'{row[2]}', callback_data=f'{row[2]}')
+                keyboard.add(key)
+            keyboard.add(types.InlineKeyboardButton(text='Свой вариант', callback_data='Свой вариант'))
             bot.send_message(message.from_user.id,
-                             "Введи предмет и задание. Например: 'Алгебра: №67' (Вводи строго один предмет!). "
-                             "Если хочешь добавить фото, то напиши так: 'Химия: фото', а потом отправь само фото")
-            users[user_id]['condition'] = 'wait new hw'
+                             text = 'Выбери один предмет из списка или добавь новый',
+                             reply_markup=keyboard)
+            users[user_id]['condition'] = 'wait subject'
     else:
         bot.send_message(message.from_user.id, 'Сначала пройди регистрацию через команду /start')
 
@@ -176,7 +214,7 @@ def timetable(message):
             ttt = ''
             cursor.execute('''
                         SELECT timetable, time FROM timetable WHERE school_class = ?
-                        ''', (users[user_id]['school'],))
+                        ''', (rework(users[user_id]['school']),))
             rows = cursor.fetchall()
             if len(rows) > 0:
                 for timetable, time in rows:
@@ -194,8 +232,10 @@ def timetable(message):
 
 @bot.message_handler(content_types=['text', 'photo'])
 def send_school(message):
-    global users
+    global users, user_timers
     user_id = message.from_user.id
+    print(f"users[{user_id}] = {users.get(user_id)}")
+    print(f"condition = {users.get(user_id, {}).get('condition')}")
     if users[user_id]['condition'] == 'wait school':
         users[user_id] = {'school': message.text, 'reg': False, 'condition': 'wait school'}
         keyboard = types.InlineKeyboardMarkup()
@@ -205,83 +245,53 @@ def send_school(message):
         keyboard.add(key_no)
         bot.send_message(message.from_user.id, text=f'Твоя школа и класс - "{users[user_id]['school']}"?',
                          reply_markup=keyboard)
-    elif users[user_id]['condition'] == 'wait new hw':
-        print("Текст сообщения:", repr(message.text))
-        print("Есть 'фото'?", 'фото' in message.text.lower())
-        if 'фото' in message.text.lower():
-            users[user_id]['item'] = list(map(str, message.text.split(': ')))
-            users[user_id]['item'] = users[user_id]['item'][0]
-            users[user_id]['condition'] = 'wait photo'
-            bot.send_message(message.from_user.id, 'Теперь жду фотку')
+    if user_id in users and users[user_id]['reg'] == True:
+        if users[user_id]['condition'] == 'wait new subject':
+            users[user_id]['hw_item'] = message.text
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+            keyboard.add(key_yes)
+            key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+            keyboard.add(key_no)
+            bot.send_message(message.from_user.id, text=f'Новый предмет - "{users[user_id]['hw_item']}"?',
+                             reply_markup=keyboard)
+        elif users[user_id]['condition'] == 'wait new hw':
+            try:
+                if user_id in user_timers:
+                    user_timers[user_id].cancel()
+                    users[user_id]['hw_foto'].append(message.photo[-1].file_id)
+                else:
+                    users[user_id]['hw_foto'] = ''
+                    users[user_id]['hw_foto'] = [message.photo[-1].file_id]
+                    users[user_id]['hw_chel'] = message.caption if message.caption else 'Don`t send'
+                timer = threading.Timer(2.0, send_question, args=[user_id])
+                user_timers[user_id] = timer
+                timer.start()
+            except:
+                try:
+                    users[user_id]['hw_foto'] = 'Don`t send'
+                    users[user_id]['hw_chel'] = message.text
+                    keyboard = types.InlineKeyboardMarkup()
+                    key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+                    keyboard.add(key_yes)
+                    key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+                    keyboard.add(key_no)
+                    bot.send_message(message.from_user.id, f'{users[user_id]['hw_chel']}?', reply_markup=keyboard)
+                except:
+                    bot.send_message(message.from_user.user_id,
+                                     'Ты чуть бота не сломал. Измени тип отправленного сообщения. Можно отправлять только одно/несколько фото с подписью/без подписи. Или просто текст')
+        elif users[user_id]['condition'] == 'wait new tt':
+            users[user_id]['tt'] = message.photo[-1].file_id
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
+            keyboard.add(key_yes)
+            key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
+            keyboard.add(key_no)
+            bot.send_photo(message.from_user.id, caption=f'Рассписание на завтра?', photo=users[user_id]['tt'], reply_markup=keyboard)
         else:
-            try:
-                users[user_id]['item'], users[user_id]['chel'] = map(str, message.text.split(': '))
-                keyboard = types.InlineKeyboardMarkup()
-                key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
-                keyboard.add(key_yes)
-                key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
-                keyboard.add(key_no)
-                bot.send_message(message.from_user.id, text=f'Дз - "{users[user_id]['item']}: {users[user_id]['chel']}"?', reply_markup=keyboard)
-            except:
-                bot.send_message(message.from_user.id,
-                                 'Ты чуть бота не сломал. Без шуток. Вводи только один предмет за раз. И только по шаблону "Предмет: домашка"')
-    elif users[user_id]['condition'] == 'wait photo':
-        users[user_id]['chel'] = message.photo[-1].file_id
-        keyboard = types.InlineKeyboardMarkup()
-        key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
-        keyboard.add(key_yes)
-        key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
-        keyboard.add(key_no)
-        bot.send_photo(message.from_user.id, caption=f'{users[user_id]['item']}?', photo=users[user_id]['chel'], reply_markup=keyboard)
-    elif users[user_id]['condition'] == 'wait new tt':
-        users[user_id]['tt'] = message.photo[-1].file_id
-        keyboard = types.InlineKeyboardMarkup()
-        key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
-        keyboard.add(key_yes)
-        key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
-        keyboard.add(key_no)
-        bot.send_photo(message.from_user.id, caption=f'Рассписание на завтра?', photo=users[user_id]['tt'], reply_markup=keyboard)
-    elif users[user_id]['condition'] == 'wait problem':
-        try:
-            users[user_id]['problem_foto'] = message.photo[-1].file_id
-            users[user_id]['problem_text'] = message.caption
-            keyboard = types.InlineKeyboardMarkup()
-            key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
-            keyboard.add(key_yes)
-            key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
-            keyboard.add(key_no)
-            bot.send_photo(message.from_user.id, caption=f'Твоя проблема: {users[user_id]['problem_text']}', photo=users[user_id]['problem_foto'], reply_markup=keyboard)
-        except:
-            try:
-                users[user_id]['problem_foto'] = f'Don`t send'
-                users[user_id]['problem_text'] = message.caption
-                keyboard = types.InlineKeyboardMarkup()
-                key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
-                keyboard.add(key_yes)
-                key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
-                keyboard.add(key_no)
-                bot.send_message(message.from_user.id, f'Уверен?: {users[user_id]['problem_text']}', reply_markup=keyboard)
-            except:
-                users[user_id]['problem_foto'] = message.photo[-1].file_id
-                users[user_id]['problem_text'] = 'Don`t send'
-                keyboard = types.InlineKeyboardMarkup()
-                key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
-                keyboard.add(key_yes)
-                key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
-                keyboard.add(key_no)
-                bot.send_photo(message.from_user.id, caption=f'Твоя проблема: {users[user_id]['problem_text']}', photo=users[user_id]['problem_foto'], reply_markup=keyboard)
-    elif users[user_id]['condition'] == 'wait replay':
-        if message.from_user.id == MY_ID:
-            users[user_id]['id'] = message.text.split(': ')[0]
-            users[user_id]['answer'] = message.text.split(': ')[1]
-            keyboard = types.InlineKeyboardMarkup()
-            key_yes = types.InlineKeyboardButton(text='Да', callback_data='yes')
-            keyboard.add(key_yes)
-            key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
-            keyboard.add(key_no)
-            bot.send_message(message.from_user.id, f'айди пользователя: {users[user_id]['id']}, ответ: {users[user_id]['answer']}', reply_markup=keyboard)
+            bot.send_message(message.from_user.id, 'Я тебя не понимаю. Введи /help, для просмотра команд. Или можешь подать жалобу через /feedback, а я через время отвечу')
     else:
-        bot.send_message(message.from_user.id, 'Я тебя не понимаю. Введи /help, для просмотра команд. Или можешь подать жалобу через /feedback, а я через время отвечу')
+        bot.send_message(message.from_user.user_id, 'Сначала пройди регистрацию через /start')
 
 
 @bot.message_handler(content_types=['document'])
@@ -291,9 +301,11 @@ def handle_document(message):
         downloaded_file = bot.download_file(file_info.file_path)
         with open('homework.db', 'wb') as f:
             f.write(downloaded_file)
+        cursor.execute('DROP TABLE homework')
         bot.reply_to(message, "База данных обновлена")
     else:
         bot.reply_to(message, "Недоступно")
+
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -307,38 +319,46 @@ def callback_worker(call):
             cursor.execute('''
                        INSERT INTO schools (user_id, school_class)
                        VALUES (?, ?)
-                       ''', (user_id, users[user_id]['school']))
+                       ''', (user_id, rework(users[user_id]['school'])))
             conn.commit()
             users[user_id]['condition'] = ''
             users[user_id]['reg'] = True
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /school')
+    elif users[user_id]['condition'] =='wait subject':
+        if call.data == "Свой вариант":
+            bot.send_message(call.message.chat.id, 'Тогда жду предмет')
+            users[user_id]['condition'] = 'wait new subject'
+        elif call.data:
+            bot.send_message(call.message.chat.id, 'Тогда можешь отправить одно или несколько фото дз с подисью или без. Или без фото')
+            users[user_id]['hw_item'] = call.data
+            users[user_id]['condition'] = 'wait new hw'
+    elif users[user_id]['condition'] == 'wait new subject':
+        if call.data == 'yes':
+            bot.send_message(call.message.chat.id, 'Тепрь можешь отправить одно или несколько фото дз с подписью или без. Можешь отправить и один текст без фотки')
+            users[user_id]['condition'] = 'wait new hw'
+        elif call.data == 'no':
+            bot.send_message(call.message.chat.id, 'Тогда введи заново')
     elif users[user_id]['condition'] == 'wait new hw':
         if call.data == "yes":
             now_utc = datetime.now(timezone.utc)
             now_msk = now_utc + timedelta(hours=3)
-            cursor.execute('''
-            INSERT OR REPLACE INTO homework (school_class, subject, task, time)
-            VALUES (?, ?, ?, ?)
-            ''', (users[user_id]['school'], users[user_id]['item'], users[user_id]['chel'], now_msk.strftime('%d.%m в %H:%M')))
+            if users[user_id]['hw_foto'] != 'Don`t send':
+                cursor.execute('''
+                INSERT OR REPLACE INTO homework (school_class, subject, task, time, photo_id)
+                VALUES (?, ?, ?, ?, ?)
+                ''', (rework(users[user_id]['school']), users[user_id]['hw_item'], users[user_id]['hw_chel'],
+                      now_msk.strftime('%d.%m в %H:%M'), ', '.join(users[user_id]['hw_foto'])))
+            else:
+                cursor.execute('''
+                    INSERT OR REPLACE INTO homework (school_class, subject, task, time, photo_id)
+                    VALUES (?, ?, ?, ?, ?)
+                    ''', (rework(users[user_id]['school']), users[user_id]['hw_item'], users[user_id]['hw_chel'],
+                      now_msk.strftime('%d.%m в %H:%M'), users[user_id]['hw_foto']))
             conn.commit()
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
-                             'Хорошо. Если хочешь ввести ещё дз, то используй команду /new_hw ещё раз')
-        elif call.data == "no":
-            bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_hw')
-    elif users[user_id]['condition'] == 'wait photo':
-        if call.data == "yes":
-            now_utc = datetime.now(timezone.utc)
-            now_msk = now_utc + timedelta(hours=3)
-            cursor.execute('''
-            INSERT OR REPLACE INTO homework (school_class, subject, task, time, photo_id)
-            VALUES (?, ?, ?, ?, ?)
-            ''', (users[user_id]['school'], users[user_id]['item'], 'chek in photo_id', now_msk.strftime('%d.%m в %H:%M'), users[user_id]['chel']))
-            conn.commit()
-            users[user_id]['condition'] = ''
-            bot.send_message(call.message.chat.id,
-                             'Хорошо. Если хочешь ввести ещё дз, то используй команду /new_hw ещё раз')
+                             'Хорошо. Можешь добавить ещё дз через /new_hw, или посмотреть дз через /hw')
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_hw')
     elif users[user_id]['condition'] == 'wait new tt':
@@ -348,38 +368,13 @@ def callback_worker(call):
             cursor.execute('''
             INSERT OR REPLACE INTO timetable (school_class, timetable, time)
             VALUES (?, ?, ?)
-            ''', (users[user_id]['school'], users[user_id]['tt'], now_msk.strftime('%d.%m в %H:%M')))
+            ''', (rework(users[user_id]['school']), users[user_id]['tt'], now_msk.strftime('%d.%m в %H:%M')))
             conn.commit()
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
                              'Хорошо. Если хочешь обновить рассписание, то используй команду /new_tt ещё раз')
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_tt')
-    elif users[user_id]['condition'] == 'wait problem':
-        if call.data == "yes":
-            cursor.execute('''
-            INSERT OR REPLACE INTO feedback_2 (user_id, problem, photo_id)
-            VALUES (?, ?, ?)
-            ''', (user_id ,f"{users[user_id]['problem_text']}", users[user_id]['problem_foto']))
-            conn.commit()
-            users[user_id]['condition'] = ''
-            bot.send_message(call.message.chat.id,
-                             'Хорошо. Жди ответа в ближайшее время')
-        elif call.data == "no":
-            bot.send_message(call.message.chat.id, 'Тогда введи заново через /feedback')
-    elif users[user_id]['condition'] == 'wait replay':
-        if call.data == "yes":
-            bot.send_message(call.message.chat.id, 'Отправил1')
-            cursor.execute('''
-            UPDATE feedback_2 SET verified = 1 WHERE user_id = ?, photo_id = ?
-            ''', (users[user_id]['id'], users[user_id]['problem_foto'],))
-            conn.commit()
-            bot.send_message(call.message.chat.id, 'Отправи2л')
-            users[user_id]['condition'] = ''
-            bot.send_message(users[user_id]['id'], f'Вот ответ от разработчика: {users[user_id]["answer"]}')
-            bot.send_message(call.message.chat.id, 'Отправил')
-        elif call.data == "no":
-            bot.send_message(call.message.chat.id, 'Тогда введи заново через /feedback')
 
 
 keep_alive()
