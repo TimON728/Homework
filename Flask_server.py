@@ -26,6 +26,7 @@ MY_ID = int(os.environ.get('MY_ID', 0))
 conn = sqlite3.connect('homework.db', check_same_thread=False)  # файл базы данных
 cursor = conn.cursor()
 users = {}
+user_timers = {}
 
 cursor.execute(
     '''CREATE TABLE IF NOT EXISTS schools (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, school_class TEXT)''')
@@ -265,7 +266,7 @@ def send_school(message):
                     users[user_id]['hw_foto'] = ''
                     users[user_id]['hw_foto'] = [message.photo[-1].file_id]
                     users[user_id]['hw_chel'] = message.caption if message.caption else 'Don`t send'
-                timer = threading.Timer(2.0, send_question, args=[user_id])
+                timer = threading.Timer(10.0, send_question, args=[user_id])
                 user_timers[user_id] = timer
                 timer.start()
             except:
