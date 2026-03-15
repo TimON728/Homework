@@ -253,7 +253,7 @@ def send_school(message):
                     users[user_id]['hw_foto'] = ''
                     users[user_id]['hw_foto'] = [message.photo[-1].file_id]
                     users[user_id]['hw_chel'] = message.caption if message.caption else 'Don`t send'
-                timer = threading.Timer(2.0, send_question, args=[user_id])
+                timer = threading.Timer(20.0, send_question, args=[user_id])
                 user_timers[user_id] = timer
                 timer.start()
             except:
