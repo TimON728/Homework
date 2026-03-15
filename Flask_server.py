@@ -132,7 +132,7 @@ def send_welcome(message):
 @bot.message_handler(commands=['school'])
 def reg_school(message):
     user_id = message.from_user.id
-    bot.send_message(message.from_user.id, "Введи название школы и класс, на пример: 'Лодейнопольская СОШ №3, 8а'")
+    bot.send_message(message.from_user.id, "Введи название школы и класс, например: 'Лодейнопольская СОШ №3, 8а'")
     users[user_id] = {'condition': 'wait school'}
 
 
