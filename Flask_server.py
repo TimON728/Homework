@@ -301,9 +301,9 @@ def callback_worker(call):
     if users[user_id]['condition'] == 'wait school':
         if call.data == "yes":
             keyboard = types.InlineKeyboardMarkup()
-            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
             keyboard.add(key_yes)
-            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
+            bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
             bot.send_message(call.message.chat.id,
                              'Хорошо. Теперь ты можешь посмотреть дз (/hw) или ввести новое(/new_hw). Ещё ты можешь посмотреть расписание (/tt) ли обновить (/new_tt)')
             cursor.execute('''
@@ -318,25 +318,28 @@ def callback_worker(call):
     elif users[user_id]['condition'] =='wait subject':
         if call.data == "Свой вариант":
             keyboard = types.InlineKeyboardMarkup()
-            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
             keyboard.add(key_yes)
-            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
+            bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id, reply_markup=keyboard)
             bot.send_message(call.message.chat.id, 'Тогда жду предмет')
             users[user_id]['condition'] = 'wait new subject'
-        elif call.data:
+        elif call.data and call.data != 'done':
             keyboard = types.InlineKeyboardMarkup()
-            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
             keyboard.add(key_yes)
-            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
+            bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id, reply_markup=keyboard)
             bot.send_message(call.message.chat.id, 'Тогда можешь отправить одно или несколько фото дз с подписью или без. Или без фото')
             users[user_id]['hw_item'] = call.data
             users[user_id]['condition'] = 'wait new hw'
     elif users[user_id]['condition'] == 'wait new subject':
         if call.data == 'yes':
             keyboard = types.InlineKeyboardMarkup()
-            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
             keyboard.add(key_yes)
-            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
+            bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id, reply_markup=keyboard)
             bot.send_message(call.message.chat.id, 'Теперь можешь отправить одно или несколько фото дз с подписью или без. Можешь отправить и один текст без фотки')
             users[user_id]['condition'] = 'wait new hw'
         elif call.data == 'no':
@@ -344,9 +347,10 @@ def callback_worker(call):
     elif users[user_id]['condition'] == 'wait new hw':
         if call.data == "yes":
             keyboard = types.InlineKeyboardMarkup()
-            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
             keyboard.add(key_yes)
-            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
+            bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id, reply_markup=keyboard)
             now_utc = datetime.now(timezone.utc)
             now_msk = now_utc + timedelta(hours=3)
             if users[user_id]['hw_foto'] != 'Don`t send':
@@ -370,9 +374,10 @@ def callback_worker(call):
     elif users[user_id]['condition'] == 'wait new tt':
         if call.data == "yes":
             keyboard = types.InlineKeyboardMarkup()
-            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
             keyboard.add(key_yes)
-            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
+            bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id, reply_markup=keyboard)
             now_utc = datetime.now(timezone.utc)
             now_msk = now_utc + timedelta(hours=3)
             cursor.execute('''
