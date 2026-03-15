@@ -75,6 +75,7 @@ def send_question(message):
 
 @bot.message_handler(commands=['chek'])
 def chek(message):
+    n = 1
     if message.from_user.id == MY_ID:
         user = {}
         cursor.execute("SELECT * FROM schools")
@@ -84,19 +85,13 @@ def chek(message):
         for row in schools:
             user[row[1]] = f'{row[2]} \n'
         for i, j in user.items():
-            bot.send_message(message.from_user.id, f'{i}: {j}')
-
-        cursor.execute("SELECT * FROM homework")
-        homework = cursor.fetchall()
-
-        bot.send_message(message.from_user.id, "=== Таблица homework ===")
-        for row in homework:
-            bot.send_message(message.from_user.id, f'{row}')
+            bot.send_message(message.from_user.id, f'{n}: {i}: {j}')
+            n += 1
 
 
 @bot.message_handler(commands=['help'])
 def help(message):
-    bot.send_message(message.from_user.id, 'Вот все команды: \n /start - пройти регистрацию (Если уже регистрировался, то тебя бот вспомнит) \n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - помсотреть рассписание \n /new_tt - изменить рассписание \n Если сменил школу, то просто введи /school')
+    bot.send_message(message.from_user.id, 'Вот все команды: \n /start - пройти регистрацию (Если уже регистрировался, то тебя бот вспомнит) \n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - посмотреть расписание \n /new_tt - изменить расписание \n Если сменил школу, то просто введи /school')
 
 
 @bot.message_handler(commands=['getdb'])
@@ -117,7 +112,7 @@ def send_welcome(message):
     if row:
         users[user_id] = {'school': row[1], 'reg': True}
         bot.send_message(message.from_user.id,
-                         f"Привет! Напомню команды:\n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - помсотреть рассписание \n /new_tt - изменить рассписание \n Если сменил школу, то просто введи /school")
+                         f"Привет! Напомню команды:\n /hw - посмотреть дз\n /new_hw - добавить дз\n /tt - посмотреть расписание \n /new_tt - изменить расписание \n Если сменил школу, то просто введи /school")
         # при следующем обновлении вырезать
         cursor.execute('''
                 UPDATE homework 
@@ -212,12 +207,12 @@ def timetable(message):
                     ttt = time
                 bot.send_photo(message.from_user.id, caption=f'Расписание на завтра (обн. {ttt})', photo=tt)
             else:
-                bot.send_message(message.from_user.id, 'Рассписание не добавили')
+                bot.send_message(message.from_user.id, 'Расписание не добавили')
         elif message.text == '/new_tt':
-            bot.send_message(message.from_user.id, 'Жду фото рассписания')
+            bot.send_message(message.from_user.id, 'Жду фото расписания')
             users[user_id]['condition'] = 'wait new tt'
     else:
-        bot.send_message(message.from_user.id, 'Сначал пройди регестрацию через команду /start')
+        bot.send_message(message.from_user.id, 'Сначала пройди регистрацию через команду /start')
 
 
 @bot.message_handler(content_types=['text', 'photo'])
@@ -277,7 +272,7 @@ def send_school(message):
             keyboard.add(key_yes)
             key_no = types.InlineKeyboardButton(text='Нет', callback_data='no')
             keyboard.add(key_no)
-            bot.send_photo(message.from_user.id, caption=f'Рассписание на завтра?', photo=users[user_id]['tt'], reply_markup=keyboard)
+            bot.send_photo(message.from_user.id, caption=f'Расписание на завтра?', photo=users[user_id]['tt'], reply_markup=keyboard)
         else:
             bot.send_message(message.from_user.id, 'Я тебя не понимаю. Введи /help, для просмотра команд. Или можешь подать жалобу через /feedback, а я через время отвечу')
     else:
@@ -305,8 +300,12 @@ def callback_worker(call):
     user_id = call.from_user.id
     if users[user_id]['condition'] == 'wait school':
         if call.data == "yes":
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            keyboard.add(key_yes)
+            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
             bot.send_message(call.message.chat.id,
-                             'Хорошо. Теперь ты можешь посмотреть дз (/hw) или ввести новое(/new_hw). Ещё ты можешь посмотреть рассписание (/tt) ли обновить (/new_tt)')
+                             'Хорошо. Теперь ты можешь посмотреть дз (/hw) или ввести новое(/new_hw). Ещё ты можешь посмотреть расписание (/tt) ли обновить (/new_tt)')
             cursor.execute('''
                        INSERT INTO schools (user_id, school_class)
                        VALUES (?, ?)
@@ -318,20 +317,36 @@ def callback_worker(call):
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /school')
     elif users[user_id]['condition'] =='wait subject':
         if call.data == "Свой вариант":
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            keyboard.add(key_yes)
+            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
             bot.send_message(call.message.chat.id, 'Тогда жду предмет')
             users[user_id]['condition'] = 'wait new subject'
         elif call.data:
-            bot.send_message(call.message.chat.id, 'Тогда можешь отправить одно или несколько фото дз с подисью или без. Или без фото')
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            keyboard.add(key_yes)
+            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
+            bot.send_message(call.message.chat.id, 'Тогда можешь отправить одно или несколько фото дз с подписью или без. Или без фото')
             users[user_id]['hw_item'] = call.data
             users[user_id]['condition'] = 'wait new hw'
     elif users[user_id]['condition'] == 'wait new subject':
         if call.data == 'yes':
-            bot.send_message(call.message.chat.id, 'Тепрь можешь отправить одно или несколько фото дз с подписью или без. Можешь отправить и один текст без фотки')
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            keyboard.add(key_yes)
+            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
+            bot.send_message(call.message.chat.id, 'Теперь можешь отправить одно или несколько фото дз с подписью или без. Можешь отправить и один текст без фотки')
             users[user_id]['condition'] = 'wait new hw'
         elif call.data == 'no':
             bot.send_message(call.message.chat.id, 'Тогда введи заново')
     elif users[user_id]['condition'] == 'wait new hw':
         if call.data == "yes":
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            keyboard.add(key_yes)
+            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
             now_utc = datetime.now(timezone.utc)
             now_msk = now_utc + timedelta(hours=3)
             if users[user_id]['hw_foto'] != 'Don`t send':
@@ -354,6 +369,10 @@ def callback_worker(call):
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_hw')
     elif users[user_id]['condition'] == 'wait new tt':
         if call.data == "yes":
+            keyboard = types.InlineKeyboardMarkup()
+            key_yes = types.InlineKeyboardButton(text='Ответ принят ✅')
+            keyboard.add(key_yes)
+            bot.edit_message_text(call.message.chat.id, message_id=call.message.message_id, reply_markup=keyboard)
             now_utc = datetime.now(timezone.utc)
             now_msk = now_utc + timedelta(hours=3)
             cursor.execute('''
@@ -363,7 +382,7 @@ def callback_worker(call):
             conn.commit()
             users[user_id]['condition'] = ''
             bot.send_message(call.message.chat.id,
-                             'Хорошо. Если хочешь обновить рассписание, то используй команду /new_tt ещё раз')
+                             'Хорошо. Если хочешь обновить расписание, то используй команду /new_tt ещё раз')
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_tt')
 
