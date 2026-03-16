@@ -371,21 +371,13 @@ def callback_worker(call):
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_hw')
     elif users[user_id]['condition'] == 'wait new tt':
-        bot.send_message(call.message.chat.id, '0')
         if call.data == "yes":
-            bot.send_message(call.message.chat.id, '1')
             keyboard = types.InlineKeyboardMarkup()
-            bot.send_message(call.message.chat.id, '2')
             key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
-            bot.send_message(call.message.chat.id, '3')
             keyboard.add(key_yes)
-            bot.send_message(call.message.chat.id, '4')
-            bot.send_message(call.message.chat.id, f'text={call.message.text}, replay_markup=', reply_markup=keyboard)
-            bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
+            bot.edit_message_caption(caption=call.message.text, chat_id=call.message.chat.id,
                                   message_id=call.message.message_id, reply_markup=keyboard)
-            bot.send_message(call.message.chat.id, '5')
             now_utc = datetime.now(timezone.utc)
-            bot.send_message(call.message.chat.id, '6')
             now_msk = now_utc + timedelta(hours=3)
             cursor.execute('''
             INSERT OR REPLACE INTO timetable (school_class, timetable, time)
