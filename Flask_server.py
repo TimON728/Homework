@@ -333,17 +333,12 @@ def callback_worker(call):
             users[user_id]['hw_item'] = call.data
             users[user_id]['condition'] = 'wait new hw'
     elif users[user_id]['condition'] == 'wait new subject':
-        bot.send_message(call.from_user.id, '0')
         if call.data == 'yes':
-            bot.send_message(call.from_user.id, '1')
             keyboard = types.InlineKeyboardMarkup()
-            bot.send_message(call.from_user.id, '2')
             key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
             keyboard.add(key_yes)
-            bot.send_message(call.from_user.id, '3')
             bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
                                   message_id=call.message.message_id, reply_markup=keyboard)
-            bot.send_message(call.from_user.id, '4')
             bot.send_message(call.message.chat.id, 'Теперь можешь отправить одно или несколько фото дз с подписью или без. Можешь отправить и один текст без фотки')
             users[user_id]['condition'] = 'wait new hw'
         elif call.data == 'no':
@@ -376,13 +371,20 @@ def callback_worker(call):
         elif call.data == "no":
             bot.send_message(call.message.chat.id, 'Тогда введи заново через /new_hw')
     elif users[user_id]['condition'] == 'wait new tt':
+        bot.send_message(call.message.chat.id, '0')
         if call.data == "yes":
+            bot.send_message(call.message.chat.id, '1')
             keyboard = types.InlineKeyboardMarkup()
+            bot.send_message(call.message.chat.id, '2')
             key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
+            bot.send_message(call.message.chat.id, '3')
             keyboard.add(key_yes)
+            bot.send_message(call.message.chat.id, '4')
             bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
                                   message_id=call.message.message_id, reply_markup=keyboard)
+            bot.send_message(call.message.chat.id, '5')
             now_utc = datetime.now(timezone.utc)
+            bot.send_message(call.message.chat.id, '6')
             now_msk = now_utc + timedelta(hours=3)
             cursor.execute('''
             INSERT OR REPLACE INTO timetable (school_class, timetable, time)
