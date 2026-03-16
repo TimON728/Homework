@@ -380,6 +380,7 @@ def callback_worker(call):
             bot.send_message(call.message.chat.id, '3')
             keyboard.add(key_yes)
             bot.send_message(call.message.chat.id, '4')
+            bot.send_message(call.message.chat.id, f'text={call.message.text}, replay_markup=', reply_markup=keyboard)
             bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
                                   message_id=call.message.message_id, reply_markup=keyboard)
             bot.send_message(call.message.chat.id, '5')
