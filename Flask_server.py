@@ -166,7 +166,6 @@ def new_hm(message):
                             media_group = []
                             for j in hw_foto[i]:
                                 media_group.append(types.InputMediaPhoto(j, caption=f"{hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})"))
-                                bot.send_message(message.from_user.id, f'file_id = {j}\n repr = {repr(j)}')
                             bot.send_media_group(message.from_user.id, media=media_group)
                     else:
                         hw_list.append(f'- {hw_item[i]}: {hw_chel[i]} (обн. {hw_time[i]})')
@@ -334,12 +333,17 @@ def callback_worker(call):
             users[user_id]['hw_item'] = call.data
             users[user_id]['condition'] = 'wait new hw'
     elif users[user_id]['condition'] == 'wait new subject':
+        bot.send_message(call.from_user.id, '0')
         if call.data == 'yes':
+            bot.send_message(call.from_user.id, '1')
             keyboard = types.InlineKeyboardMarkup()
+            bot.send_message(call.from_user.id, '2')
             key_yes = types.InlineKeyboardButton(text='Ответ принят ✅', callback_data='done')
             keyboard.add(key_yes)
+            bot.send_message(call.from_user.id, '3')
             bot.edit_message_text(text=call.message.text, chat_id=call.message.chat.id,
                                   message_id=call.message.message_id, reply_markup=keyboard)
+            bot.send_message(call.from_user.id, '4')
             bot.send_message(call.message.chat.id, 'Теперь можешь отправить одно или несколько фото дз с подписью или без. Можешь отправить и один текст без фотки')
             users[user_id]['condition'] = 'wait new hw'
         elif call.data == 'no':
