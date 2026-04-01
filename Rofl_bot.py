@@ -4,14 +4,12 @@ import time
 import os
 
 foto = ''
-chat = ''
 stop_spam = False
 
 
-def spam(photo):
-    global chat
+def spam(photo, message):
     while not stop_spam:
-        bot.send_photo(chat, photo)
+        bot.send_photo(message.chat.id, photo)
         time.sleep(0.5)
 
 
@@ -31,24 +29,12 @@ def adv(message):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    global chat, stop_spam
-    if '@' in message.text:
-        bot.send_message(message.chat.id, 'ща')
-        txt = message.text.split()[1]
-        bot.send_message(message.chat.id, 'ща0.5')
-        try:
-            chat = bot.get_chat(txt)
-            bot.send_message(message.chat.id, 'ща1')
-        except Exception as e:
-            bot.send_message(message.chat.id, f'Не могу найти {txt}: {e}')
-            return
-        bot.send_message(message.chat.id, 'ща1')
-        stop_spam = False
-        spam(foto)
-        timer = threading.Timer(60.0, def_stop_spam)
-        timer.start()
-    else:
-        bot.send_message(message.chat.id, 'Отказано')
+    global stop_spam
+    bot.send_message(message.chat.id, 'ща')
+    stop_spam = False
+    spam(foto, message)
+    timer = threading.Timer(60.0, def_stop_spam)
+    timer.start()
 
 
 
