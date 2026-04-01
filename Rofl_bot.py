@@ -10,6 +10,7 @@ stop_spam = False
 def spam(photo, message):
     while not stop_spam:
         bot.send_photo(message.chat.id, photo)
+        time.sleep(0.05)
 
 
 def def_stop_spam():
@@ -31,13 +32,9 @@ def send_welcome(message):
     global stop_spam
     bot.send_message(message.chat.id, 'ща')
     stop_spam = False
-    spam(foto, message)
-    spam(foto, message)
-    spam(foto, message)
-    spam(foto, message)
-    spam(foto, message)
-    timer = threading.Timer(300.0, def_stop_spam)
-    timer.start()
+    while True:
+        spam(foto, message)
+        time.sleep(0.05)
 
 
 
