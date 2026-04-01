@@ -1,16 +1,18 @@
 import telebot
-import threading
 import time
 import os
 
 foto = ''
+count = 0
 stop_spam = False
 
 
 def spam(photo, message):
+    global count
     while not stop_spam:
         bot.send_photo(message.chat.id, photo)
         time.sleep(0.05)
+        count += 1
 
 
 def def_stop_spam():
@@ -25,7 +27,7 @@ bot = telebot.TeleBot(os.environ.get('TOKEN_FOR_KIRILL'))
 def adv(message):
     global stop_spam
     stop_spam = True
-    bot.send_message(message.chat.id, 'Ладно')
+    bot.send_message(message.chat.id, f'Ты получил {count} мемов')
 
 
 @bot.message_handler(commands=['start'])
