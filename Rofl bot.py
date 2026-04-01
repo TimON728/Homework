@@ -1,36 +1,49 @@
 import telebot
 import threading
+import time
 import os
 
 foto = ''
 chat = ''
 stop_spam = False
 
+
+def spam(photo):
+    global chat
+    while not stop_spam:
+        bot.send_photo(chat, photo)
+        time.sleep(0.5)
+
+
+def def_stop_spam():
+    global stop_spam
+    stop_spam = True
+
+
 bot = telebot.TeleBot(os.environ.get('TOKEN_FOR_KIRILL'))
+
+
+@bot.message_handler(commands=['adv'])
+def adv(message):
+    global stop_spam
+    stop_spam = True
+
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    global chat
+    global chat, stop_spam
     if '@' in message.text:
         bot.send_message(message.chat.id, 'ща')
         txt = message.text.split()[1]
         chat = bot.get_chat(txt)
         bot.send_message(message.chat.id, 'ща1')
+        stop_spam = False
         spam(foto)
         timer = threading.Timer(60.0, def_stop_spam)
         timer.start()
     else:
         bot.send_message(message.chat.id, 'Отказано')
 
-
-def spam(photo):
-    global chat
-    while not stop_spam:
-        bot.send_photo(chat, photo)
-
-
-def def_stop_spam():
-    global stop_spam
-    stop_spam = True
 
 
 @bot.message_handler(content_types=['photo'])
