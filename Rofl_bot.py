@@ -32,7 +32,11 @@ def send_welcome(message):
     bot.send_message(message.chat.id, 'ща')
     stop_spam = False
     spam(foto, message)
-    timer = threading.Timer(60.0, def_stop_spam)
+    spam(foto, message)
+    spam(foto, message)
+    spam(foto, message)
+    spam(foto, message)
+    timer = threading.Timer(300.0, def_stop_spam)
     timer.start()
 
 
