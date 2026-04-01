@@ -10,7 +10,6 @@ stop_spam = False
 def spam(photo, message):
     while not stop_spam:
         bot.send_photo(message.chat.id, photo)
-        time.sleep(0.5)
 
 
 def def_stop_spam():
