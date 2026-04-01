@@ -25,6 +25,7 @@ bot = telebot.TeleBot(os.environ.get('TOKEN_FOR_KIRILL'))
 def adv(message):
     global stop_spam
     stop_spam = True
+    bot.send_message(message.chat.id, 'Ладно')
 
 
 @bot.message_handler(commands=['start'])
