@@ -35,6 +35,7 @@ def send_welcome(message):
     if '@' in message.text:
         bot.send_message(message.chat.id, 'ща')
         txt = message.text.split()[1]
+        bot.send_message(message.chat.id, 'ща0.5')
         chat = bot.get_chat(txt)
         bot.send_message(message.chat.id, 'ща1')
         stop_spam = False
