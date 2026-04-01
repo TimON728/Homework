@@ -273,7 +273,7 @@ def send_school(message):
             keyboard.add(key_no)
             bot.send_photo(message.from_user.id, caption=f'Расписание на завтра?', photo=users[user_id]['tt'], reply_markup=keyboard)
         else:
-            bot.send_message(message.from_user.id, 'Я тебя не понимаю. Введи /help, для просмотра команд. Или можешь подать жалобу через /feedback, а я через время отвечу')
+            bot.send_message(message.from_user.id, 'Я тебя не понимаю. Введи /help, для просмотра команд')
     else:
         bot.send_message(message.from_user.user_id, 'Сначала пройди регистрацию через /start')
 
